@@ -32,9 +32,12 @@ set currentDir=%~dp0
 set currentDir=%currentDir:~0,-1%
 :: Переходим в родительскую папку
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
+set parentDir=%parentDir:~0,-1%
 
 :: Переходим в родительскую папку родительской папки
 for %%i in ("%parentDir:~0,-1%") do set parentDir2=%%~dpi
+
+set parentDir2=%parentDir2:~0,-1%
 
 
 :AntiZapret_Menu
@@ -51,10 +54,36 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
 
-for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "GZVER=%%a"
+for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "GZVER_current=%%a"
 
 
-set "GoodbyeZapretVersion=%GZVER%"
+
+:: Загрузка нового файла Updater.bat
+if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
+curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX-dev/GodbyeZapret/refs/heads/main/GoodbyeZapret_Version_Info" 
+call:AZ_FileChecker_2
+if not "%CheckStatus%"=="Checked" (
+    echo Ошибка: Не удалось провести проверку файла
+    goto GZ_loading_procces
+)
+if errorlevel 1 (
+    echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
+    goto GZ_loading_procces
+)
+
+:: Выполнение загруженного файла Updater.bat
+call "%TEMP%\GZ_Updater.bat" >nul 2>&1
+if errorlevel 1 (
+    echo ERROR - Ошибка при выполнении GZ_Updater.bat
+)
+
+
+
+
+
+
+set "GoodbyeZapretVersion_New=%GZVER%"
+set "GoodbyeZapretVersion=%GZVER_current%"
 cls
 title GoodbyeZapret v%GoodbyeZapretVersion% - Launcher
 
@@ -323,24 +352,28 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
 )
 
-if exist "%parentDir2%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
+if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
 
-curl -g -L -# -o %parentDir2%\GoodbyeZapret_latest.zip "https://github.com/ALFiX-dev/GodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
+
+curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX-dev/GodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
+
 call:AZ_FileChecker
 if not "%CheckStatus%"=="Checked" (
     echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
     pause
     goto AntiZapret_Menu
 )
-
-    if exist "%parentDir2%\GoodbyeZapret_latest.zip" (
-        start "" "%~dp0Extract.bat"
-        for /f "usebackq delims=" %%a in ("%parentDir2%\GoodbyeZapret_latest\version.txt") do set "GZVER=%%a"
-        ren "%parentDir2%\GoodbyeZapret_latest" "GoodbyeZapret_%GZVER%"
-        del "%parentDir2%\GoodbyeZapret_latest.zip" >nul 2>&1
+    if exist "%parentDir%\GoodbyeZapret_latest.zip" (
+        start /wait "" "%~dp0Extract.bat"
+        timeout /t 1 >nul
+        for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\version.txt") do set "GZVER_newfile=%%a"
+        ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_%GZVER_newfile%"
+        del "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
+        start "" "%parentDir%\GoodbyeZapret_%GZVER_newfile%"
     ) else (
-        echo Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.
-        goto GoBack 
+        echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
+        pause
+        goto AntiZapret_Menu
     )
 
 title Настройка конфига GoodbyeZapret
@@ -364,22 +397,22 @@ goto AntiZapret_Menu
 set "FileSize=0"
 set "CheckStatus=Checked"
 REM set "file=%ASX-Directory%\Files\Downloads\%FileName%"
-set "Check_FilePatch=%parentDir%\ASX_GoodbyeZapret_latest.zip"
-set "Check_FileName=ASX_GoodbyeZapret_latest.zip"
+set "Check_FilePatch=%parentDir%\GoodbyeZapret_latest.zip"
+set "Check_FileName=GoodbyeZapret_latest.zip"
 
 for %%I in ("%Check_FilePatch%") do set FileSize=%%~zI
 
 if not exist "%Check_FilePatch%" ( 
     set "CheckStatus=NoChecked"
     REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo [ERROR] %TIME% - Не удалось провести проверку файла - %Check_FileName% не найден >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    echo ERROR - Не удалось провести проверку файла - %Check_FileName% не найден
     goto GoBack
 )
 
 if not defined FileSize (
     set "CheckStatus=NoChecked"
     REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo [ERROR] %TIME% - Не удалось провести проверку файла %Check_FileName% >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    echo ERROR - Не удалось провести проверку файла %Check_FileName%
     echo.
     del /Q "%Check_FilePatch%"
     goto GoBack
@@ -387,7 +420,7 @@ if not defined FileSize (
 if %FileSize% LSS 100 (
     set "CheckStatus=NoChecked"
     REM echo     %COL%[91m   └ Ошибка: Файл не прошел проверку. Возможно, он поврежден %COL%[37m
-    echo [ERROR] %TIME% - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^) >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    echo ERROR - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^)
     echo.
     del /Q "%Check_FilePatch%"
     goto GoBack
@@ -406,14 +439,14 @@ for %%I in ("%Check_FilePatch%") do set FileSize=%%~zI
 if not exist "%Check_FilePatch%" ( 
     set "CheckStatus=NoChecked"
     REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo [ERROR] %TIME% - Не удалось провести проверку файла - %Check_FileName% не найден >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    echo ERROR - Не удалось провести проверку файла - %Check_FileName% не найден
     goto GoBack
 )
 
 if not defined FileSize (
     set "CheckStatus=NoChecked"
     REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo [ERROR] %TIME% - Не удалось провести проверку файла %Check_FileName% >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    echo ERROR - Не удалось провести проверку файла %Check_FileName%
     echo.
     del /Q "%Check_FilePatch%"
     goto GoBack
@@ -421,7 +454,7 @@ if not defined FileSize (
 if %FileSize% LSS 100 (
     set "CheckStatus=NoChecked"
     REM echo     %COL%[91m   └ Ошибка: Файл не прошел проверку. Возможно, он поврежден %COL%[37m
-    echo [ERROR] %TIME% - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^) >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    echo ERROR - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^)
     echo.
     del /Q "%Check_FilePatch%"
     goto GoBack
