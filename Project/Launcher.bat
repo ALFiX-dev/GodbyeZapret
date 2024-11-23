@@ -33,6 +33,9 @@ set currentDir=%currentDir:~0,-1%
 :: Переходим в родительскую папку
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 
+:: Переходим в родительскую папку родительской папки
+for %%i in ("%parentDir:~0,-1%") do set parentDir2=%%~dpi
+
 
 :AntiZapret_Menu
 set "CheckStatus=WithoutChecked"
@@ -320,22 +323,23 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
 )
 
-if exist "%parentDir%\ASX_GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\ASX_GoodbyeZapret_latest.zip" >nul 2>&1
+if exist "%parentDir2%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
 
-curl -g -L -# -o %parentDir%\ASX_GoodbyeZapret_latest.zip "https://github.com/ALFiX01/ASX-Hub/raw/main/Files/Utilities/ASX_GoodbyeZapret/ASX_GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o %parentDir2%\GoodbyeZapret_latest.zip "https://github.com/ALFiX-dev/GodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
 call:AZ_FileChecker
 if not "%CheckStatus%"=="Checked" (
     echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
+    pause
     goto AntiZapret_Menu
 )
 
-    if exist "%parentDir%\ASX_GoodbyeZapret_latest.zip" (
+    if exist "%parentDir2%\GoodbyeZapret_latest.zip" (
         start "" "%~dp0Extract.bat"
-        ren "%parentDir%\ASX_GoodbyeZapret_latest" "ASX_GoodbyeZapret_%GoodbyeZapretVersion%"
-        del "%parentDir%\ASX_GoodbyeZapret_latest.zip" >nul 2>&1
+        for /f "usebackq delims=" %%a in ("%parentDir2%\GoodbyeZapret_latest\version.txt") do set "GZVER=%%a"
+        ren "%parentDir2%\GoodbyeZapret_latest" "GoodbyeZapret_%GZVER%"
+        del "%parentDir2%\GoodbyeZapret_latest.zip" >nul 2>&1
     ) else (
-        echo Ошибка: Не удалось скачать файл ASX_GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.
-		echo [ERROR] %TIME% - Ошибка при загрузке ASX_GoodbyeZapret.zip >> "%ASX-Directory%\Files\Logs\%date%.txt"
+        echo Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.
         goto GoBack 
     )
 
@@ -360,8 +364,8 @@ goto AntiZapret_Menu
 set "FileSize=0"
 set "CheckStatus=Checked"
 REM set "file=%ASX-Directory%\Files\Downloads\%FileName%"
-set "Check_FilePatch=%ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip"
-set "Check_FileName=ASX_GoodbyeZapret.zip"
+set "Check_FilePatch=%parentDir%\ASX_GoodbyeZapret_latest.zip"
+set "Check_FileName=ASX_GoodbyeZapret_latest.zip"
 
 for %%I in ("%Check_FilePatch%") do set FileSize=%%~zI
 
