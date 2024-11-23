@@ -1,0 +1,1 @@
+powershell -NoProfile Expand-Archive '%parentDir%\ASX_GoodbyeZapret_latest.zip' -DestinationPath '%parentDir%\ASX_GoodbyeZapret_latest' >nul 2>&1
