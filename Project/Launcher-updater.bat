@@ -49,7 +49,7 @@ if %errorlevel% equ 0 (
 
 :: Загрузка нового файла Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
-curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/ASX-Hub/main/Files/ASX/GoodbyeZapret_Version_Info" 
+curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX-dev/GodbyeZapret/refs/heads/main/GoodbyeZapret_Version_Info" 
 call:AZ_FileChecker_2
 if not "%CheckStatus%"=="Checked" (
     echo Ошибка: Не удалось провести проверку файла
